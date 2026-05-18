@@ -1,0 +1,37 @@
+{
+  "name": "solana-agent",
+  "version": "1.0.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "ts-node src/index.ts",
+    "demo:jupiter": "ENABLE_REAL_HTTP=true ts-node src/index.ts \"Jupiter Aggregator\"",
+    "demo:tensor": "ENABLE_REAL_HTTP=true ts-node src/index.ts \"Tensor NFT Marketplace\"",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "probe:sdk": "tsx src/sdk-probe.ts",
+    "probe:sap:pda": "tsx src/sap-pda-probe.ts",
+    "probe:sap": "tsx src/sap-real-probe.ts",
+    "build:sap:register": "tsx src/sap-build-register.ts",
+    "check:sap:agent": "tsx src/sap-check-agent.ts",
+    "simulate:sap:register:mainnet": "tsx src/sap-simulate-register-mainnet.ts",
+    "simulate:sap:register": "tsx src/sap-simulate-register.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@acedatacloud/x402-client": "^2026.507.2",
+    "@oobe-protocol-labs/synapse-client-sdk": "^2.0.6",
+    "@oobe-protocol-labs/synapse-sap-sdk": "^0.17.0",
+    "@solana/web3.js": "^1.98.4",
+    "dotenv": "^16.6.1",
+    "undici-types": "^7.24.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.8.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.22.1",
+    "typescript": "^6.0.3"
+  },
+  "description": ""
+}
