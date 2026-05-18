@@ -10,7 +10,7 @@ export type AceServiceResult = {
   serviceName: string;
   category: AceServiceCategory;
   toolId: string;
-  status: "live_probe" | "mocked_adapter";
+  status: "live_probe" | "live_ace_api" | "mocked_adapter";
   data: Record<string, unknown>;
 };
 
@@ -20,6 +20,19 @@ type GitHubRepoResponse = {
   stargazers_count: number;
   forks_count: number;
   open_issues_count: number;
+};
+
+type AceChatCompletionResponse = {
+  id?: string;
+  model?: string;
+  choices?: Array<{
+    message?: {
+      role?: string;
+      content?: string;
+    };
+    finish_reason?: string;
+  }>;
+  usage?: Record<string, unknown>;
 };
 
 function repoForTarget(target: string): string {
@@ -34,6 +47,22 @@ function repoForTarget(target: string): string {
   }
 
   return "solana-labs/solana";
+}
+
+function extractJsonFromMarkdown(text: string): unknown {
+  const trimmed = text.trim();
+
+  const fenced = trimmed.match(/```json\s*([\s\S]*?)\s*```/i);
+  const rawJson = fenced ? fenced[1] : trimmed;
+
+  try {
+    return JSON.parse(rawJson);
+  } catch {
+    return {
+      raw: text,
+      parseWarning: "model_response_was_not_valid_json",
+    };
+  }
 }
 
 export async function callAceSearchService(
@@ -112,17 +141,83 @@ export async function callAceSummaryService(
 ): Promise<AceServiceResult> {
   console.log(`\n[AceData] Calling LLM summary service via tool: ${tool.name}`);
 
+  const apiKey = process.env.ACE_API_KEY;
+
+  if (!apiKey) {
+    return {
+      serviceName: "ace_llm_summary_service",
+      category: "LLM_SUMMARY",
+      toolId: tool.id,
+      status: "mocked_adapter",
+      data: {
+        target,
+        summary:
+          "The project has moderate public risk signals and requires deeper manual review before trust assumptions are made.",
+        decision:
+          "The autonomous agent does not mark the target as trusted without additional verification.",
+        reason: "ACE_API_KEY is not set",
+      },
+    };
+  }
+
+  const response = await fetch("https://api.acedata.cloud/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are an autonomous risk intelligence service. Return concise JSON only.",
+        },
+        {
+          role: "user",
+          content: `Analyze ${target} on Solana. Return JSON with risk_level, reasons, and decision.`,
+        },
+      ],
+    }),
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    return {
+      serviceName: "ace_llm_summary_service",
+      category: "LLM_SUMMARY",
+      toolId: tool.id,
+      status: "mocked_adapter",
+      data: {
+        target,
+        aceHttpStatus: response.status,
+        aceError: text,
+        fallbackSummary:
+          "Ace Data Cloud API call failed, fallback summary was used.",
+        decision: "manual_review_required",
+      },
+    };
+  }
+
+  const parsed = JSON.parse(text) as AceChatCompletionResponse;
+  const content = parsed.choices?.[0]?.message?.content ?? "";
+
   return {
     serviceName: "ace_llm_summary_service",
     category: "LLM_SUMMARY",
     toolId: tool.id,
-    status: "mocked_adapter",
+    status: "live_ace_api",
     data: {
       target,
-      summary:
-        "The project has moderate public risk signals and requires deeper manual review before trust assumptions are made.",
-      decision:
-        "The autonomous agent does not mark the target as trusted without additional verification.",
+      source: "ace_data_cloud_chat_completions",
+      model: parsed.model,
+      completionId: parsed.id,
+      finishReason: parsed.choices?.[0]?.finish_reason,
+      parsed: extractJsonFromMarkdown(content),
+      rawContent: content,
+      usage: parsed.usage,
     },
   };
 }

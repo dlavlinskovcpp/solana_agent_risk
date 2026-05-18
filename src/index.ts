@@ -39,6 +39,7 @@ async function main() {
         mode: config.agentMode,
         enableRealHttp: config.enableRealHttp,
         aceFacilitatorUrl: config.aceFacilitatorUrl,
+        agentPublicKey: agentWallet.publicKey.toBase58(),
     });
 
     console.log("\n=== WORKFLOW REPORT ===");
