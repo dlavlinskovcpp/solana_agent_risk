@@ -6,7 +6,7 @@ export type SapTool = {
 };
 
 export async function discoverSapTools(target: string): Promise<SapTool[]> {
-    console.log("\n[SAP] Discovering tools for target:", target);
+    console.log("\n[SAP-style] Discovering tools for target:", target);
 
     const tools: SapTool[] = [
         {
@@ -29,7 +29,10 @@ export async function discoverSapTools(target: string): Promise<SapTool[]> {
         },
     ];
 
-    console.log("[SAP] Found tools:", tools.map((tool) => tool.name).join(", "));
+    console.log(
+        "[SAP-style] Found tools:",
+        tools.map((tool) => tool.name).join(", "),
+    );
 
     return tools;
 }
@@ -41,7 +44,7 @@ export function selectTool(tools: SapTool[], category: SapTool["category"]): Sap
         throw new Error(`No SAP tool found for category: ${category}`);
     }
 
-    console.log(`[SAP] Selected ${category} tool:`, tool.name);
+    console.log(`[SAP-style] Selected ${category} tool:`, tool.name);
 
     return tool;
 }

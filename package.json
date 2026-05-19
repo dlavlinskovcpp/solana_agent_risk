@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "demo:jupiter": "ENABLE_REAL_HTTP=true tsx src/index.ts \"Jupiter Aggregator\"",
+    "demo:jupiter:proof": "ENABLE_REAL_HTTP=true ENABLE_DEVNET_ONCHAIN_PROOF=true tsx src/index.ts \"Jupiter Aggregator\"",
     "demo:tensor": "ENABLE_REAL_HTTP=true tsx src/index.ts \"Tensor NFT Marketplace\"",
     "probe:x402": "tsx src/x402-probe.ts",
     "probe:x402:compat": "tsx src/x402-compat.ts",
@@ -23,6 +24,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@acedatacloud/sdk": "^2026.504.2",
     "@acedatacloud/x402-client": "^2026.507.2",
     "@oobe-protocol-labs/synapse-client-sdk": "^2.0.6",
     "@oobe-protocol-labs/synapse-sap-sdk": "^0.17.0",

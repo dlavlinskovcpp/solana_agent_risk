@@ -1,177 +1,189 @@
-# Solana Autonomous Risk Agent
+# Solana Agent: Autonomous Risk Intelligence MVP
 
-Autonomous research agent for the **OOBE Protocol / Ace Data Cloud** bounty.
-The agent demonstrates an end-to-end autonomous workflow:
+Category: **Ace Data Cloud Usage / x402 Facilitator**
+
+This repository is a preview-mode MVP submission for an autonomous Solana-oriented risk intelligence agent. It accepts a target project, discovers SAP-style tools, selects the right services, calls Ace Data Cloud adapters, calculates a dynamic risk score, creates an x402 Solana USDC payment requirement preview, and saves JSON plus Markdown reports.
+
+## What The Agent Does
+
+The agent runs a local end-to-end workflow for targets such as `Jupiter Aggregator` or `Tensor NFT Marketplace`.
+
+It demonstrates:
+
+- SAP-style tool discovery and tool selection.
+- Three Ace Data Cloud service calls when `ACE_API_KEY` and `ENABLE_REAL_HTTP=true` are configured.
+- Dynamic risk scoring from SERP results, extracted web text/signals, and LLM risk output.
+- x402 SDK-compatible Solana USDC payment requirement preview.
+- Ace x402 client adapter loading and handler readiness checks.
+- Safe local reporting without private funds or mainnet payment broadcast.
+
+## End-To-End Workflow
 
 ```text
 trigger
-→ SAP-style tool discovery
-→ tool selection
-→ Ace Data Cloud service execution
-→ risk scoring
-→ x402 payment requirement preview
-→ JSON / Markdown report generation
-
-Category
-
-Ace Data Cloud Usage — x402 Facilitator
-
-What the agent does
-
-The agent receives a target project name, discovers suitable tools, executes three service categories, calculates a risk score, creates an x402 payment requirement preview, and saves a full machine-readable and human-readable report.
-
-Example target:
-
-ENABLE_REAL_HTTP=true npm run dev -- "Jupiter Aggregator"
-
-Implemented workflow
-
-The current workflow includes:
-
-1. Trigger received from CLI input.
-2. SAP-style tool discovery.
-3. Tool selection for search, analysis, and summary tasks.
-4. Ace Data Cloud-style service execution.
-5. Risk score calculation.
-6. x402 402 Payment Required preview.
-7. JSON and Markdown report generation.
-
-Example workflow steps:
-
-trigger_received
-sap_tools_discovered
-sap_tools_selected
-ace_search_service_completed
-ace_risk_service_completed
-ace_summary_service_completed
-x402_payment_requirement_preview_created
-
-Ace Data Cloud service categories
-
-The agent executes three distinct service categories:
-
-Category	Service name	Current status
-SERP	ace_serp_intelligence_service	live public HTTP probe
-Market / Risk	ace_market_risk_service	mocked adapter
-LLM Summary	ace_llm_summary_service	mocked adapter
-
-The SERP service can run a real HTTP probe when ENABLE_REAL_HTTP=true.
-
-x402 payment preview
-
-The agent generates an x402-style payment requirement preview instead of broadcasting a real payment.
-
-Example payment object:
-
-{
-  "provider": "x402",
-  "status": "payment_required_preview",
-  "httpStatus": 402,
-  "amountUsd": 0.03,
-  "asset": "USDC",
-  "facilitator": "https://facilitator.acedata.cloud"
-}
-
-No private funds are used in the current MVP.
-
-SAP integration status
-
-The project includes SAP SDK integration probes:
-
-* SAP SDK import check
-* SAP client inspection
-* SAP PDA derivation
-* registerAgent instruction construction
-* devnet simulation diagnostics
-
-The project uses:
-
-@oobe-protocol-labs/synapse-sap-sdk@0.17.0
-
-The registerAgent instruction is built with the documented 5-account layout:
-
-wallet
-agent
-agent_stats
-global_registry
-system_program
-
-Mainnet registration is not performed in this repository because it requires real mainnet SOL for transaction fees and rent.
-
-Project structure
-
-src/
-  index.ts                         CLI entry point
-  workflow.ts                      Autonomous workflow orchestration
-  sap.ts                           SAP-style tool discovery
-  acedata.ts                       Ace Data Cloud service adapters
-  payment.ts                       x402 payment requirement preview
-  risk.ts                          Risk scoring
-  wallet.ts                        Stable Solana agent wallet
-  funding.ts                       Balance / optional devnet airdrop
-  storage.ts                       JSON / Markdown report saving
-  markdown.ts                      Markdown report renderer
-  sdk-probe.ts                     SDK import probe
-  sap-real-probe.ts                SAP client probe
-  sap-pda-probe.ts                 SAP PDA derivation probe
-  sap-build-register.ts            registerAgent instruction builder
-  sap-check-agent.ts               SAP account checker
-  sap-simulate-register.ts         devnet simulation
-  sap-simulate-register-mainnet.ts mainnet simulation without sending
-
-Setup
-
-Install dependencies:
-
-npm install
-
-Create .env:
-
-cp .env.example .env
-
-Run the agent:
-
-ENABLE_REAL_HTTP=true npm run dev -- "Jupiter Aggregator"
-
-Run another demo target:
-
-ENABLE_REAL_HTTP=true npm run dev -- "Tensor NFT Marketplace"
-
-Reports
-
-Each run creates:
-
-runs/agent-report-*.json
-runs/agent-report-*.md
-
-Reports are intentionally ignored by Git to avoid committing generated artifacts.
-
-Safety
-
-This repository does not include:
-
-* private wallet keys
-* API keys
-* real payment execution
-* mainnet transaction broadcasting
-
-The .keys/ directory and .env file are ignored by Git.
-
-Current limitations
-
-* SAP discovery is currently implemented as SAP-style local discovery.
-* Ace Data Cloud risk and summary services are adapter mocks.
-* x402 payment is represented as a payment requirement preview.
-* SAP mainnet registration is pending because it requires real SOL and official registration flow confirmation.
-
-Submission summary
-
-This MVP demonstrates an autonomous agent loop:
-
-target input
-→ SAP-style discovery
-→ three Ace Data Cloud service categories
-→ dynamic risk score
-→ x402 payment requirement preview
-→ persistent report
+-> SAP-style tool discovery
+-> tool selection
+-> Ace Data Cloud SERP Google API
+-> Ace Data Cloud WebExtrator Extract API
+-> Ace Data Cloud Chat Completions API
+-> dynamic risk score
+-> x402 Solana USDC payment requirement preview
+-> JSON / Markdown report saved
 ```
+
+The saved report includes these workflow steps:
+
+```text
+trigger_received
+sap_style_tools_discovered
+sap_style_tools_selected
+ace_serp_google_completed
+ace_webextrator_extract_completed
+ace_chat_completions_completed
+x402_payment_requirement_preview_created
+```
+
+## Ace Data Cloud Services
+
+| Service                     | Endpoint               | Purpose                                                                            |
+| --------------------------- | ---------------------- | ---------------------------------------------------------------------------------- |
+| Ace Google SERP API         | `/serp/google`         | Finds public search results and risk-related mentions for the target.              |
+| Ace WebExtrator Extract API | `/webextrator/extract` | Extracts target website content and raw web signals.                               |
+| Ace Chat Completions API    | `/v1/chat/completions` | Produces structured Solana risk analysis with `risk_level`, reasons, and decision. |
+
+## x402 Payment Preview
+
+The MVP creates an x402-compatible payment requirement, but it does not sign or broadcast a transaction.
+
+- SDK package: `@acedatacloud/x402-client`.
+- SDK adapter loaded: reported in each run under `payment.sdk.adapterLoaded`.
+- Handler ready: reported under `payment.sdk.handlerCreated`.
+- Asset: Solana mainnet USDC.
+- USDC mint: `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`.
+- Amount: `0.03` USDC.
+- Base units: `30000`.
+- Facilitator: `https://facilitator.acedata.cloud`.
+- Broadcast: disabled by default and reported as `broadcasted: false`.
+
+The trace includes `real_x402_broadcast_disabled_by_safety_flag` in normal MVP mode.
+
+## Optional Solana Devnet Execution Proof
+
+The agent can optionally record a short Solana Memo transaction on Devnet with a SHA-256 hash of the assembled JSON report.
+
+This proof is:
+
+- Optional and disabled by default.
+- Devnet only.
+- A Memo Program record of the report hash, workflow id, target, and timestamp.
+- Explorer-verifiable when the wallet has devnet SOL.
+- Not SAP mainnet registration.
+- Not x402 payment settlement.
+- Not a SOL or USDC payment.
+
+Enable it with:
+
+```bash
+ENABLE_DEVNET_ONCHAIN_PROOF=true npm run dev -- "Jupiter Aggregator"
+```
+
+Or run the combined live Ace plus Devnet proof demo:
+
+```bash
+npm run demo:jupiter:proof
+```
+
+The local agent wallet needs devnet SOL for transaction fees. If it has no devnet SOL, the agent saves the report anyway with `onchainProof.status` set to `skipped` or `failed` and a clear reason.
+Latest recorded Devnet proof:
+
+- Signature: `3Lc15ed5PFuEZWPXXykFL1oicAZhi5Vqx7cyu1c49hveaVJvzwqnW4qyZX2akwv5KUMKCUWGo6bks7ayd3V6GSSo`
+- Explorer: `https://explorer.solana.com/tx/3Lc15ed5PFuEZWPXXykFL1oicAZhi5Vqx7cyu1c49hveaVJvzwqnW4qyZX2akwv5KUMKCUWGo6bks7ayd3V6GSSo?cluster=devnet`
+
+## SAP Integration Status
+
+This project presents SAP integration honestly as:
+
+- SAP-style local tool discovery.
+- SAP-style tool selection.
+- SAP SDK probes for imports, PDA derivation, account checks, and register instruction construction.
+- SAP registration simulation/preview mode.
+
+It does **not** claim successful SAP mainnet registration. During the bounty period, the public SAP mainnet registration flow had builder-facing issues, including `global_registry` / Anchor `3007` errors and official onboarding loading problems reported by other builders. Mainnet registration also requires real mainnet funds. For that reason, registration is kept in simulation/preview mode in this MVP.
+
+Useful SAP scripts are kept in `package.json`:
+
+```bash
+npm run probe:sdk
+npm run probe:sap
+npm run probe:sap:pda
+npm run build:sap:register
+npm run check:sap:agent
+npm run simulate:sap:register
+npm run simulate:sap:register:mainnet
+```
+
+## Setup
+
+```bash
+npm install
+cp .env.example .env
+```
+
+Edit `.env` locally and add your Ace key:
+
+```text
+ACE_API_KEY=your_local_key_here
+```
+
+Keep the default safety flags unless you are intentionally testing a local-only simulation:
+
+```text
+AGENT_MODE=mock
+ENABLE_REAL_HTTP=false
+ENABLE_REAL_X402_PAYMENT=false
+ENABLE_DEVNET_ONCHAIN_PROOF=false
+SAP_REGISTRATION_MODE=simulation
+```
+
+## How To Run Demo
+
+Run the Jupiter demo with live Ace HTTP enabled:
+
+```bash
+npm run demo:jupiter
+```
+
+Run the Tensor demo:
+
+```bash
+npm run demo:tensor
+```
+
+Run the optional Devnet Memo proof demo:
+
+```bash
+npm run demo:jupiter:proof
+```
+
+Run probes:
+
+```bash
+npm run probe:ace
+npm run probe:x402
+npm run probe:x402:compat
+```
+
+Build TypeScript:
+
+```bash
+npm run build
+```
+
+## Reports
+
+Each run saves:
+
+- `runs/agent-report-*.json`
+- `runs/agent-report-*.md`
+
+The `runs/*.json` and `runs/*.md` files are ignored by Git so demo artifacts do not leak raw API responses or local runtime details into the repository.

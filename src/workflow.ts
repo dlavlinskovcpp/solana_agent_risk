@@ -1,20 +1,24 @@
 import crypto from "crypto";
 import { discoverSapTools, selectTool, type SapTool } from "./sap";
 import {
-    callAceRiskService,
+    callAceChatCompletionsService,
     callAceSearchService,
-    callAceSummaryService,
+    callAceWebExtractService,
     type AceServiceResult,
 } from "./acedata";
 import { settleX402Payment, type PaymentRecord } from "./payment";
 import { calculateRiskScore } from "./risk";
+import type { SapRegistrationMode } from "./config";
+import type { OnchainProof } from "./onchain-proof";
 
 export type AgentTask = {
     target: string;
     mode?: "mock" | "real";
     enableRealHttp?: boolean;
+    enableRealX402Payment?: boolean;
     aceFacilitatorUrl?: string;
     agentPublicKey?: string;
+    sapRegistrationMode?: SapRegistrationMode;
 };
 
 export type AgentReport = {
@@ -27,6 +31,9 @@ export type AgentReport = {
     signals: string[];
     steps: string[];
     mode: "mock" | "real";
+    sapRegistrationMode: SapRegistrationMode;
+    realX402BroadcastEnabled: boolean;
+    onchainProof?: OnchainProof;
 };
 
 export async function runWorkflow(task: AgentTask): Promise<AgentReport> {
@@ -36,42 +43,51 @@ export async function runWorkflow(task: AgentTask): Promise<AgentReport> {
     steps.push("trigger_received");
 
     const tools = await discoverSapTools(task.target);
-    steps.push("sap_tools_discovered");
+    steps.push("sap_style_tools_discovered");
 
     const searchTool = selectTool(tools, "search");
-    const riskTool = selectTool(tools, "analysis");
+    const webExtractTool = selectTool(tools, "analysis");
     const summaryTool = selectTool(tools, "summary");
-    steps.push("sap_tools_selected");
+    steps.push("sap_style_tools_selected");
 
     const searchResult = await callAceSearchService(
         searchTool,
         task.target,
         task.enableRealHttp ?? false,
     );
-    steps.push("ace_search_service_completed");
+    steps.push("ace_serp_google_completed");
 
-    const riskResult = await callAceRiskService(riskTool, task.target);
-    steps.push("ace_risk_service_completed");
+    const webExtractResult = await callAceWebExtractService(
+        webExtractTool,
+        task.target,
+        task.enableRealHttp ?? false,
+    );
+    steps.push("ace_webextrator_extract_completed");
 
-    const summaryResult = await callAceSummaryService(summaryTool, task.target);
-    steps.push("ace_summary_service_completed");
+    const chatCompletionsResult = await callAceChatCompletionsService(
+        summaryTool,
+        task.target,
+        task.enableRealHttp ?? false,
+    );
+    steps.push("ace_chat_completions_completed");
 
     const payment = await settleX402Payment(
         workflowId,
         0.03,
         task.aceFacilitatorUrl ?? "https://facilitator.acedata.cloud",
         task.agentPublicKey ?? "agent-controlled-wallet",
+        task.enableRealX402Payment ?? false,
     );
     steps.push("x402_payment_requirement_preview_created");
 
-    const aceResults = [searchResult, riskResult, summaryResult];
+    const aceResults = [searchResult, webExtractResult, chatCompletionsResult];
     const riskScore = calculateRiskScore(aceResults);
 
     return {
         workflowId,
         target: task.target,
         riskScore,
-        toolsUsed: [searchTool, riskTool, summaryTool],
+        toolsUsed: [searchTool, webExtractTool, summaryTool],
         aceResults,
         payment,
         signals: [
@@ -81,6 +97,8 @@ export async function runWorkflow(task: AgentTask): Promise<AgentReport> {
             "x402 payment requirement preview generated",
         ],
         mode: task.mode ?? "mock",
+        sapRegistrationMode: task.sapRegistrationMode ?? "simulation",
+        realX402BroadcastEnabled: task.enableRealX402Payment ?? false,
         steps,
     };
 }

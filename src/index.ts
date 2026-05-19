@@ -7,6 +7,7 @@ import { printWalletStatus, requestDevnetAirdropIfNeeded } from "./funding";
 import { saveJsonReport, saveTextReport } from "./storage";
 import { buildMarkdownReport } from "./markdown";
 import { loadConfig } from "./config";
+import { createDevnetExecutionProof } from "./onchain-proof";
 
 async function main() {
     const config = loadConfig();
@@ -26,6 +27,15 @@ async function main() {
     console.log("Airdrop:", config.enableAirdrop);
     console.log("Target:", target);
     console.log("RPC:", rpcUrl);
+    console.log("SAP registration mode:", config.sapRegistrationMode);
+    console.log(
+        "Real x402 payment broadcast:",
+        config.enableRealX402Payment ? "requested but disabled in MVP" : "disabled",
+    );
+    console.log(
+        "Devnet on-chain proof:",
+        config.enableDevnetOnchainProof ? "enabled" : "disabled",
+    );
 
     await printWalletStatus(connection, agentWallet.publicKey);
 
@@ -38,9 +48,54 @@ async function main() {
         target,
         mode: config.agentMode,
         enableRealHttp: config.enableRealHttp,
+        enableRealX402Payment: config.enableRealX402Payment,
         aceFacilitatorUrl: config.aceFacilitatorUrl,
         agentPublicKey: agentWallet.publicKey.toBase58(),
+        sapRegistrationMode: config.sapRegistrationMode,
     });
+
+    let proofStepIndex: number | null = null;
+
+    if (config.enableDevnetOnchainProof) {
+        proofStepIndex = report.steps.push(
+            "devnet_onchain_execution_proof_recorded",
+        ) - 1;
+    }
+
+    const onchainProof = await createDevnetExecutionProof({
+        connection,
+        wallet: agentWallet.keypair,
+        workflowId: report.workflowId,
+        target,
+        report,
+        enabled: config.enableDevnetOnchainProof,
+        rpcUrl,
+    });
+
+    report.onchainProof = onchainProof;
+
+    if (config.enableDevnetOnchainProof) {
+        if (
+            report.onchainProof.status !== "recorded" &&
+            proofStepIndex !== null
+        ) {
+            report.steps[proofStepIndex] = "devnet_onchain_execution_proof_failed";
+        }
+
+        console.log("\nDevnet on-chain proof status:", report.onchainProof.status);
+
+        if (report.onchainProof.signature) {
+            console.log("Devnet on-chain proof signature:", report.onchainProof.signature);
+        }
+
+        if (report.onchainProof.explorerUrl) {
+            console.log("Devnet on-chain proof explorer:", report.onchainProof.explorerUrl);
+        }
+
+        if (report.onchainProof.reason) {
+            console.log("Devnet on-chain proof reason:", report.onchainProof.reason);
+        }
+    }
 
     console.log("\n=== WORKFLOW REPORT ===");
     console.log(JSON.stringify(report, null, 2));

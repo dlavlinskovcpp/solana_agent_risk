@@ -23,6 +23,7 @@ export function loadOrCreateAgentWallet(): AgentWallet {
 
     const keypair = Keypair.generate();
 
+    fs.mkdirSync(path.dirname(KEYPAIR_PATH), { recursive: true });
     fs.writeFileSync(KEYPAIR_PATH, JSON.stringify(Array.from(keypair.secretKey)));
 
     return {

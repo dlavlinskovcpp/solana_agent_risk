@@ -44,14 +44,42 @@ export type PaymentRecord = {
     importMode: "package_export" | "file_url_workaround" | "not_loaded";
     broadcasted: boolean;
   };
+  safety: {
+    realBroadcastRequested: boolean;
+    realBroadcastExecuted: false;
+    privateFundsUsed: false;
+  };
   trace: string[];
 };
+
+function hasCreatePaymentHandler(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "createX402PaymentHandler" in value &&
+    typeof (value as { createX402PaymentHandler?: unknown })
+      .createX402PaymentHandler === "function"
+  );
+}
 
 async function tryLoadX402SdkAdapter(): Promise<{
   adapterLoaded: boolean;
   handlerCreated: boolean;
   importMode: "package_export" | "file_url_workaround" | "not_loaded";
 }> {
+  try {
+    const x402 = await import("@acedatacloud/x402-client");
+
+    return {
+      adapterLoaded: true,
+      handlerCreated: hasCreatePaymentHandler(x402),
+      importMode: "package_export",
+    };
+  } catch {
+    // The package has had export-map friction in some Node/TS setups, so the
+    // local adapter file is used as a compatibility probe before giving up.
+  }
+
   try {
     const sdkPath = path.join(
       process.cwd(),
@@ -64,7 +92,7 @@ async function tryLoadX402SdkAdapter(): Promise<{
 
     const x402 = await import(pathToFileURL(sdkPath).href);
 
-    if (typeof x402.createX402PaymentHandler !== "function") {
+    if (!hasCreatePaymentHandler(x402)) {
       return {
         adapterLoaded: true,
         handlerCreated: false,
@@ -95,6 +123,7 @@ export async function settleX402Payment(
   amountUsd: number,
   facilitatorUrl = "https://facilitator.acedata.cloud",
   payTo = "agent-controlled-wallet",
+  realBroadcastRequested = false,
 ): Promise<PaymentRecord> {
   const reference = `x402-preview-${crypto
     .createHash("sha256")
@@ -141,6 +170,11 @@ export async function settleX402Payment(
       importMode: sdkStatus.importMode,
       broadcasted: false,
     },
+    safety: {
+      realBroadcastRequested,
+      realBroadcastExecuted: false,
+      privateFundsUsed: false,
+    },
     trace: [
       "x402_sdk_adapter_import_attempted",
       sdkStatus.adapterLoaded
@@ -152,6 +186,9 @@ export async function settleX402Payment(
       "solana_usdc_requirement_created",
       "http_402_payment_required_modeled",
       "facilitator_selected",
+      realBroadcastRequested
+        ? "real_x402_broadcast_requested_but_not_executed_in_mvp"
+        : "real_x402_broadcast_disabled_by_safety_flag",
       "payment_not_signed_or_broadcasted_no_private_funds_used",
     ],
   };
